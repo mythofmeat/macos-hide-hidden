@@ -93,10 +93,14 @@ import AppKit
     selectionLayer.frame = tile
     CATransaction.commit()
 
+    // Size the label to the name and center it under the tile (tile frames are in tilesView's coordinates,
+    // the label is in the panel's). It only shifts off-center when a long name would spill past the panel.
     nameLabel.stringValue = names[index]
-    let labelWidth = min(max(tile.width * 2, 160), effectView.bounds.width - 2 * Self.edge)
-    var labelX = tile.midX - labelWidth / 2
-    labelX = min(max(labelX, Self.edge), effectView.bounds.width - Self.edge - labelWidth)
+    let panelWidth = effectView.bounds.width
+    // cellSize includes the field's own text padding; intrinsicContentSize leaves it out and truncates.
+    let labelWidth = min(ceil(nameLabel.cell!.cellSize.width), panelWidth - 2 * Self.edge)
+    let tileMidX = tilesView.frame.minX + tile.midX
+    let labelX = min(max(tileMidX - labelWidth / 2, Self.edge), panelWidth - Self.edge - labelWidth)
     nameLabel.frame = CGRect(x: labelX, y: Self.edge * 0.6, width: labelWidth, height: Self.labelHeight)
   }
 
