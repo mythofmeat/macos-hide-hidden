@@ -4,8 +4,8 @@
 # The release workflow's `cask` job rewrites version and sha256 after it has
 # uploaded the zip, so this file always names the newest published release.
 cask "hide-hidden" do
-  version "0.1.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  version "0.1.1"
+  sha256 "f6940b7afe69c3c7593b376a9854d53f0595eea1273d31ebf640cc20f2815371"
 
   url "https://github.com/mythofmeat/macos-hide-hidden/releases/download/v#{version}/HideHidden-#{version}-arm64.zip"
   name "HideHidden"
