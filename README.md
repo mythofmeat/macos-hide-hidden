@@ -23,7 +23,8 @@ That installs `/Applications/HideHidden.app` (Apple silicon, macOS 14+). Open it
 in System Settings → Privacy & Security → Accessibility (both features need it), and turn on
 **Launch at login** from its menu bar icon.
 
-Updating: `brew upgrade --cask hide-hidden`, then re-grant Accessibility (see below) and reopen the app.
+Updating: `brew upgrade --cask hide-hidden` quits the app, replaces it, and reopens it. Then re-grant
+Accessibility (see below).
 
 ### Building from a checkout
 

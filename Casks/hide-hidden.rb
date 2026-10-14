@@ -27,9 +27,13 @@ cask "hide-hidden" do
         writable_base:  :appdir
   end
 
-  # A signal rather than `quit:`, which would make macOS ask permission for the
-  # terminal to control the app. It keeps no state, so TERM is a clean exit.
-  uninstall signal: [["TERM", "com.mythofmeat.HideHidden"]]
+  # brew upgrade skips `signal:` unless on_upgrade names it, but always runs
+  # `quit:` and reopens the app afterwards. Quitting is an Apple Event, so macOS
+  # asks once whether your terminal may control HideHidden. If that's denied,
+  # TERM still stops it (it keeps no state); it just isn't reopened.
+  uninstall quit:       "com.mythofmeat.HideHidden",
+            signal:     [["TERM", "com.mythofmeat.HideHidden"]],
+            on_upgrade: :signal
 
   zap trash: "~/Library/Preferences/com.mythofmeat.HideHidden.plist"
 
@@ -38,6 +42,6 @@ cask "hide-hidden" do
     and turn on "Launch at login" from its menu bar icon.
 
     Each release is signed ad hoc, so after an upgrade remove HideHidden from the
-    Accessibility list, add it again, and reopen it.
+    Accessibility list and add it again.
   EOS
 end
