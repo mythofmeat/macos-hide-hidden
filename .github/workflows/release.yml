@@ -1,0 +1,78 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Part of the version to increase
+        type: choice
+        required: true
+        default: patch
+        options: [patch, minor, major]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  version:
+    needs: verify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "::error::Releases are cut from main, not $GITHUB_REF."
+            exit 1
+          fi
+          # The Makefile's version is for local builds; the formula's tag is what Homebrew installs.
+          versions() {
+            sed -n 's/^VERSION *:= *//p' Makefile
+            sed -n 's/^      tag: "v\(.*\)"$/\1/p' HomebrewFormula/hide-hidden.rb
+          }
+          current=$(versions | sort -u)
+          if [ "$(printf '%s\n' "$current" | wc -l)" -ne 1 ]; then
+            echo "::error::The version files disagree: $(versions | tr '\n' ' ')"
+            exit 1
+          fi
+          if ! [[ "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::The version files hold '$current', not a MAJOR.MINOR.PATCH version."
+            exit 1
+          fi
+          IFS=. read -r major minor patch <<<"$current"
+          case "$BUMP" in
+            major) version="$((major + 1)).0.0" ;;
+            minor) version="$major.$((minor + 1)).0" ;;
+            patch) version="$major.$minor.$((patch + 1))" ;;
+            *)
+              echo "::error::bump must be patch, minor or major, not '$BUMP'."
+              exit 1
+              ;;
+          esac
+          sed -i "s/^\(VERSION *:= *\).*/\1$version/" Makefile
+          sed -i "s/^      tag: \"v.*\"$/      tag: \"v$version\"/" HomebrewFormula/hide-hidden.rb
+          if [ "$(versions | sort -u)" != "$version" ]; then
+            echo "::error::Not every version file moved to $version."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): v$version"
+          git tag "v$version"
+          git push --atomic origin HEAD "refs/tags/v$version"
+          echo "tag=v$version" >>"$GITHUB_OUTPUT"
+      - run: gh release create "$TAG" --generate-notes --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.bump.outputs.tag }}
