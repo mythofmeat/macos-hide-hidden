@@ -20,11 +20,36 @@ import AppKit
     observe()
   }
 
-  /// What the switcher shows: apps with a Dock icon that aren't hidden, front-most first.
-  /// Same set as the native Cmd+Tab, minus hidden apps.
+  /// What the switcher shows: apps with a Dock icon and a window on the current desktop, front-most first.
+  /// That leaves out hidden apps, apps with no windows (Finder included), apps whose windows are all
+  /// minimized or on other desktops, and fullscreen apps (each has a desktop of its own).
   func switchable() -> [NSRunningApplication] {
     if let front = NSWorkspace.shared.frontmostApplication { moveToFront(front) }
-    return mru.filter { $0.activationPolicy == .regular && !$0.isHidden && !$0.isTerminated }
+    let onDesktop = Self.appsWithWindowsOnCurrentDesktop()
+    return mru.filter {
+      $0.activationPolicy == .regular && !$0.isHidden && !$0.isTerminated
+        && onDesktop.contains($0.processIdentifier)
+    }
+  }
+
+  /// "On screen" means on the current desktop and not minimized. One window server round trip,
+  /// about 0.4 ms (the first call per process is ~50 ms, which `seed()` pays at launch).
+  private static func appsWithWindowsOnCurrentDesktop() -> Set<pid_t> {
+    let windows = CGWindowListCopyWindowInfo(
+      [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
+    ) as? [[String: Any]] ?? []
+    var pids = Set<pid_t>()
+    for window in windows {
+      // Normal windows only, skipping the invisible and tiny helper windows some apps keep around.
+      guard (window[kCGWindowLayer as String] as? Int) == 0,
+            (window[kCGWindowAlpha as String] as? Double ?? 1) > 0,
+            let bounds = window[kCGWindowBounds as String] as? [String: Double],
+            bounds["Width", default: 0] >= 50, bounds["Height", default: 0] >= 50,
+            let pid = window[kCGWindowOwnerPID as String] as? pid_t
+      else { continue }
+      pids.insert(pid)
+    }
+    return pids
   }
 
   func moveToFront(_ app: NSRunningApplication) {

@@ -2,9 +2,11 @@
 
 A tiny menu bar app that does two things:
 
-1. **Cmd+Tab skips hidden apps.** A replacement for the native app switcher that leaves out apps you've
-   hidden with Cmd+H. Otherwise it behaves like the native one: same apps, most-recent order, Tab /
-   Shift+Tab / `` ` `` / arrows to move, Esc to cancel, release Cmd to switch. Its only other goal is to be fast.
+1. **Cmd+Tab shows only what's on this desktop.** A replacement for the native app switcher that lists only
+   apps with a window on the current desktop, so hidden apps, windowless apps (yes, Finder), minimized-only
+   apps, and apps on other desktops or in fullscreen stay out. Otherwise it behaves like the native one:
+   most-recent order, Tab / Shift+Tab / `` ` `` / arrows to move, Esc to cancel, release Cmd to switch. Its
+   only other goal is to be fast.
 2. **Three-finger click/tap = middle click.** This is [MiddleClick](https://github.com/artginzburg/MiddleClick)
    (GPL-3.0, upstream is finished), vendored in so it can be fixed here when macOS changes.
 
@@ -59,7 +61,10 @@ Control). The app warns you about both on first launch.
 - **Password fields:** while a secure text field is focused, macOS hides keystrokes from all event taps
   ("Secure Input"), so the native switcher appears instead. That's intentional: the native shortcut is
   never disabled, so if this app quits or crashes, Cmd+Tab still works.
+- **Fullscreen apps:** a fullscreen app is its own desktop, so inside one, Cmd+Tab lists only that app. Use
+  Ctrl+arrow or Mission Control to leave it.
 - App-level only (no per-window switching), one row of icons centered on the screen under the mouse.
+- The menu bar toggle **Replace native switcher** turns all of this off and gives you the stock Cmd+Tab back.
 
 ## Layout
 

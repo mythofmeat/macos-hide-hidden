@@ -93,7 +93,7 @@ import AppKit
 
     menu.addItem(.sectionHeader(title: "Cmd+Tab"))
     switcherItem = menu.addItem(
-      withTitle: "Skip hidden apps", action: #selector(toggleSwitcher), target: self)
+      withTitle: "Replace native switcher", action: #selector(toggleSwitcher), target: self)
     switcherItem.state = switcherConfig.switcherEnabled ? .on : .off
 
     menu.addSeparator()
