@@ -1,7 +1,7 @@
 APP_NAME    := HideHidden
 BUNDLE_ID   := com.mythofmeat.HideHidden
 # The release workflow bumps this; release builds are made from the tagged commit.
-VERSION     := 0.1.0
+VERSION     := 0.1.1
 INSTALL_DIR ?= /Applications
 
 # Signing with a stable identity keeps the Accessibility grant across rebuilds.
