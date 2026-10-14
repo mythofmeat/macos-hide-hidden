@@ -25,6 +25,8 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
       - id: bump
@@ -35,10 +37,8 @@ jobs:
             echo "::error::Releases are cut from main, not $GITHUB_REF."
             exit 1
           fi
-          # The Makefile's version is for local builds; the formula's tag is what Homebrew installs.
           versions() {
             sed -n 's/^VERSION *:= *//p' Makefile
-            sed -n 's/^      tag: "v\(.*\)"$/\1/p' HomebrewFormula/hide-hidden.rb
           }
           current=$(versions | sort -u)
           if [ "$(printf '%s\n' "$current" | wc -l)" -ne 1 ]; then
@@ -60,7 +60,6 @@ jobs:
               ;;
           esac
           sed -i "s/^\(VERSION *:= *\).*/\1$version/" Makefile
-          sed -i "s/^      tag: \"v.*\"$/      tag: \"v$version\"/" HomebrewFormula/hide-hidden.rb
           if [ "$(versions | sort -u)" != "$version" ]; then
             echo "::error::Not every version file moved to $version."
             exit 1
@@ -71,8 +70,66 @@ jobs:
           git tag "v$version"
           git push --atomic origin HEAD "refs/tags/v$version"
           echo "tag=v$version" >>"$GITHUB_OUTPUT"
-      - run: gh release create "$TAG" --generate-notes --verify-tag
+
+  macos:
+    needs: version
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      # make reads VERSION from the Makefile, which the checked-out tag already carries.
+      # ditto, not zip: it keeps the bundle's extended attributes and the ad-hoc signature intact.
+      - run: |
+          make app
+          ditto -c -k --keepParent build/HideHidden.app "HideHidden-${TAG#v}-arm64.zip"
+        env:
+          TAG: ${{ needs.version.outputs.tag }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: macos
+          path: HideHidden-*-arm64.zip
+
+  release:
+    needs: [version, macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: assets
+          merge-multiple: true
+      - run: gh release create "$TAG" assets/* --generate-notes --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TAG: ${{ steps.bump.outputs.tag }}
+          TAG: ${{ needs.version.outputs.tag }}
+
+  # The cask's sha256 is the zip's, which exists only after the tag, so the cask is not one of the
+  # version files the release commit moves: it follows in a commit of its own once the zip is out.
+  cask:
+    needs: [version, release]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+      - uses: actions/download-artifact@v8
+        with:
+          name: macos
+          path: assets
+      - run: |
+          version="${TAG#v}"
+          sha=$(sha256sum "assets/HideHidden-$version-arm64.zip" | cut -d' ' -f1)
+          sed -i -e "s/^  version \".*\"$/  version \"$version\"/" \
+                 -e "s/^  sha256 \".*\"$/  sha256 \"$sha\"/" Casks/hide-hidden.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): cask $TAG"
+          git push origin HEAD:main
+        env:
+          TAG: ${{ needs.version.outputs.tag }}

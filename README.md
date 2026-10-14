@@ -10,23 +10,18 @@ A tiny menu bar app that does two things:
 
 ## Install
 
-The repo is private and is its own Homebrew tap, so tap it over SSH:
+The repo is its own Homebrew tap:
 
 ```bash
-brew tap mythofmeat/hide-hidden git@github.com:mythofmeat/macos-hide-hidden.git
-brew install mythofmeat/hide-hidden/hide-hidden
-brew services start hide-hidden
+brew tap mythofmeat/hide-hidden https://github.com/mythofmeat/macos-hide-hidden
+brew install --cask mythofmeat/hide-hidden/hide-hidden
 ```
 
-Then grant it **Accessibility** in System Settings → Privacy & Security → Accessibility. Both features
-need it. If it isn't listed, add `$(brew --prefix)/opt/hide-hidden/HideHidden.app` with the + button.
+That installs `/Applications/HideHidden.app` (Apple silicon, macOS 14+). Open it, grant it **Accessibility**
+in System Settings → Privacy & Security → Accessibility (both features need it), and turn on
+**Launch at login** from its menu bar icon.
 
-`brew services` starts it at login and restarts it if it crashes. Quitting from the menu bar keeps it quit
-until the next login or `brew services restart hide-hidden`. Leave the menu's **Launch at login** off when
-using brew services. (A second copy would just exit, but there's no point.)
-
-Updating: `brew upgrade hide-hidden`, then re-grant Accessibility (see below) and
-`brew services restart hide-hidden`.
+Updating: `brew upgrade --cask hide-hidden`, then re-grant Accessibility (see below) and reopen the app.
 
 ### Building from a checkout
 
@@ -36,8 +31,7 @@ Needs the Xcode Command Line Tools (`xcode-select --install`), not full Xcode.
 make install
 ```
 
-That builds `build/HideHidden.app`, copies it to `/Applications`, and launches it. Use either this or the
-brew install, not both.
+That builds `build/HideHidden.app`, copies it over `/Applications/HideHidden.app`, and launches it.
 
 ### Stop re-granting Accessibility after every rebuild (optional, one-time)
 
@@ -51,8 +45,8 @@ To fix that, create a free self-signed certificate once:
 3. Click **Create**
 
 The Makefile picks it up automatically (`make app` prints which identity it signed with). Do this before
-granting Accessibility, or remove the old entry and add it again once. This only helps `make` builds:
-Homebrew builds in a sandbox that hides the keychain, so brew installs are always signed ad hoc.
+granting Accessibility, or remove the old entry and add it again once. This only helps local `make` builds:
+the releases the cask installs are built and signed ad hoc on GitHub Actions.
 
 ## Trackpad settings
 
@@ -88,16 +82,23 @@ Useful targets: `make run` (build and launch from `build/`), `make logs` (stream
 
 ## Releasing
 
-Run the **release** workflow from the Actions tab (pick patch/minor/major). It builds, bumps the version in
-the `Makefile` and the formula's tag, commits `chore(release): vX.Y.Z`, tags it, and creates a GitHub release.
-Then `brew upgrade hide-hidden`.
+Run the **release** workflow from the Actions tab (pick patch/minor/major). It bumps the version in the
+`Makefile`, commits `chore(release): vX.Y.Z` and tags it, builds and zips the app on a macOS runner, publishes
+the GitHub release with the zip, and then points the cask at it in a `chore(release): cask vX.Y.Z` commit.
+Then `brew upgrade --cask hide-hidden`.
 
 ## Credits and license
 
-GPL-3.0 (see `LICENSE`), because it includes MiddleClick by Arthur Ginzburg and contributors, vendored from
-commit `566155d` (v3.3.0). Changes to the vendored code:
-- Replaced `main.swift`.
-- Dropped `UserDefaultsMigration.swift`.
-- `TrayMenu`: removed the successor/promo items and the pre-macOS-13 fallbacks, swapped the asset-catalog
-  status icon for an SF Symbol, and added the switcher toggle.
-- `kIOMasterPortDefault` → `kIOMainPortDefault`.
+GPL-3.0 (see `LICENSE`).
+
+- **[MiddleClick](https://github.com/artginzburg/MiddleClick)** by Arthur Ginzburg and contributors (GPL-3.0)
+  is vendored from commit `566155d` (v3.3.0). Changes, also noted at the top of each changed file:
+  - Replaced `main.swift`.
+  - Dropped `UserDefaultsMigration.swift`.
+  - `TrayMenu`: removed the successor/promo items and the pre-macOS-13 fallbacks, swapped the asset-catalog
+    status icon for an SF Symbol, and added the switcher toggle.
+  - `IOMultitouchManager`: `kIOMasterPortDefault` → `kIOMainPortDefault`.
+- **[AltTab](https://github.com/lwouis/alt-tab-macos)** by Louis Pontoise and contributors (GPL-3.0) is where
+  the switcher's approach comes from: activating apps with `NSRunningApplication.activate`, falling back to the
+  private `_SLPSSetFrontProcessWithOptions` call (declaration and flags follow AltTab's), and its notes on how
+  the native Cmd+Tab is matched and how Secure Input affects event taps.

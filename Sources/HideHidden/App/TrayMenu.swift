@@ -1,4 +1,6 @@
-// Adapted from MiddleClick's TrayMenu.swift (see README for what changed).
+// Modified for HideHidden on 2026-10-14, from MiddleClick's TrayMenu.swift: removed the successor/promo
+// items and the pre-macOS 13 fallbacks, swapped the asset-catalog status icon for an SF Symbol, and added
+// the Cmd+Tab switcher toggle.
 import ServiceManagement
 import AppKit
 

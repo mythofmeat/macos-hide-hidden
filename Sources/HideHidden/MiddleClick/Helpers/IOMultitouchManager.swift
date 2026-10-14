@@ -1,3 +1,4 @@
+// Modified for HideHidden on 2026-10-14: kIOMasterPortDefault -> kIOMainPortDefault (renamed in macOS 12).
 import IOKit
 
 final class IOMultitouchManager: PointerableObject {

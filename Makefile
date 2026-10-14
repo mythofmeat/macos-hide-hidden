@@ -1,6 +1,6 @@
 APP_NAME    := HideHidden
 BUNDLE_ID   := com.mythofmeat.HideHidden
-# Release builds get this from the formula; the release workflow keeps the two in step.
+# The release workflow bumps this; release builds are made from the tagged commit.
 VERSION     := 0.1.0
 INSTALL_DIR ?= /Applications
 
@@ -15,11 +15,8 @@ APP := build/$(APP_NAME).app
 
 all: app
 
-# Homebrew builds inside its own sandbox, where SwiftPM must be told not to start another one.
-SWIFT_BUILD_FLAGS ?=
-
 build:
-	swift build -c release $(SWIFT_BUILD_FLAGS)
+	swift build -c release
 
 app: build
 	rm -rf $(APP)

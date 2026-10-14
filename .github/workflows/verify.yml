@@ -23,19 +23,17 @@ jobs:
       - run: make app
 
   homebrew:
-    runs-on: ubuntu-24.04
+    runs-on: macos-latest
     timeout-minutes: 15
-    env:
-      HOMEBREW_NO_AUTO_UPDATE: "1"
     steps:
       - uses: actions/checkout@v7
-      - run: echo /home/linuxbrew/.linuxbrew/bin >>"$GITHUB_PATH"
-      # brew style and audit only apply the formula rules to a tapped formula, so the checkout is linked in as the
+      # The runner image's brew lags; audit against the brew users install with, which is the one
+      # that knows postflight_steps and rejects the legacy postflight block.
+      - run: brew update
+      # brew style and audit only apply the cask rules to a tapped cask, so the checkout is linked in as the
       # mythofmeat/hide-hidden tap.
       - run: |
           mkdir -p "$(brew --repository)/Library/Taps/mythofmeat"
           ln -s "$GITHUB_WORKSPACE" "$(brew --repository)/Library/Taps/mythofmeat/homebrew-hide-hidden"
-      - run: brew style mythofmeat/hide-hidden/hide-hidden
-      # The download_strategy audit wants a revision: beside an ssh:// tag, and the release commit
-      # cannot name its own hash. Only the GitHub HTTPS URL that a public repository could use escapes it.
-      - run: brew audit --strict --except=download_strategy mythofmeat/hide-hidden/hide-hidden
+      - run: brew style --cask mythofmeat/hide-hidden/hide-hidden
+      - run: brew audit --cask --strict mythofmeat/hide-hidden/hide-hidden
